@@ -7,6 +7,8 @@
 
 #if ARDUINO >= 100
   #include "Arduino.h"
+#elif defined(SPARK)
+  #include "application.h"
 #else
   #include "WProgram.h"
 #endif
@@ -43,7 +45,7 @@ PID::PID(double* Input, double* Output, double* Setpoint,
 
 PID::PID(double* Input, double* Output, double* Setpoint,
         double Kp, double Ki, double Kd, int ControllerDirection)
-    :PID::PID(Input, Output, Setpoint, Kp, Ki, Kd, P_ON_E, ControllerDirection)
+    :PID::PID(Input, Output, Setpoint, Kp, Ki, Kd, PID_P_ON_E, ControllerDirection)
 {
 
 }
@@ -65,6 +67,18 @@ bool PID::Compute()
       /*Compute all the working error variables*/
       double input = *myInput;
       double error = *mySetpoint - input;
+      
+      if (hystControl && error > hystOn) {
+          *myOutput = outMax;
+          outputSum = outMax; //Good idea?
+          return true;
+      } 
+      else if (hystControl && error < hystOff) {
+          *myOutput = outMin;
+          outputSum = outMin; //Good idea?
+          return true;
+      }
+      
       double dInput = (input - lastInput);
       outputSum+= (ki * error);
 
@@ -82,7 +96,7 @@ bool PID::Compute()
       /*Compute Rest of PID Output*/
       output += outputSum - kd * dInput;
 
-	    if(output > outMax) output = outMax;
+	  if(output > outMax) output = outMax;
       else if(output < outMin) output = outMin;
 	    *myOutput = output;
 
@@ -92,6 +106,25 @@ bool PID::Compute()
 	    return true;
    }
    else return false;
+}
+
+/*
+Hysteresis/Bang-Bang/On-Off control when PV/Input is far form setpoint.
+Useful for very slow moving porcesses.
+
+IF PV-SP > <on> Output = OutMax,
+IF PV-SP < <off> Output = OutMin.
+ELSE Use normal pid control
+*/
+void PID::SetHysteresisControl(bool enable, double on, double off) {
+    hystControl = enable;
+    if (controllerDirection == PID_REVERSE) {
+        hystOn = -on;
+        hystOff = -off;
+        return;
+    }
+    hystOn = on;
+    hystOff = off;
 }
 
 /* SetTunings(...)*************************************************************
@@ -104,7 +137,7 @@ void PID::SetTunings(double Kp, double Ki, double Kd, int POn)
    if (Kp<0 || Ki<0 || Kd<0) return;
 
    pOn = POn;
-   pOnE = POn == P_ON_E;
+   pOnE = POn == PID_P_ON_E;
 
    dispKp = Kp; dispKi = Ki; dispKd = Kd;
 
@@ -113,7 +146,7 @@ void PID::SetTunings(double Kp, double Ki, double Kd, int POn)
    ki = Ki * SampleTimeInSec;
    kd = Kd / SampleTimeInSec;
 
-  if(controllerDirection ==REVERSE)
+  if(controllerDirection ==PID_REVERSE)
    {
       kp = (0 - kp);
       ki = (0 - ki);
@@ -204,7 +237,7 @@ void PID::SetControllerDirection(int Direction)
 {
    if(inAuto && Direction !=controllerDirection)
    {
-	    kp = (0 - kp);
+	  kp = (0 - kp);
       ki = (0 - ki);
       kd = (0 - kd);
    }
@@ -221,4 +254,3 @@ double PID::GetKi(){ return  dispKi;}
 double PID::GetKd(){ return  dispKd;}
 int PID::GetMode(){ return  inAuto ? AUTOMATIC : MANUAL;}
 int PID::GetDirection(){ return controllerDirection;}
-
