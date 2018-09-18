@@ -9,23 +9,22 @@ class PID
 
   public:
 
-    #define PID_AUTOMATIC 1
-    #define PID_MANUAL 0
-    #define PID_DIRECT 0
-    #define PID_REVERSE 1
-    #define PID_P_ON_M 0
-    #define PID_P_ON_E 1
+    //Enums
+    enum pid_mode { AUTOMATIC = 1, MANUAL = 0 };
+    enum pid_direction { DIRECT = 0, REVERSE = 1 };
+    enum pid_p_on { ERROR = 0, MESUREMENT = 1 };
 
 
-  //commonly used functions **************************************************************************
+    //commonly used functions **************************************************************************
     PID(double*, double*, double*,        // * constructor.  links the PID to the Input, Output, and 
-        double, double, double, int, int);//   Setpoint.  Initial tuning parameters are also set here.
-                                          //   (overload for specifying proportional mode)
+        double, double, double,           //   Setpoint.  Initial tuning parameters are also set here.
+        pid_p_on, pid_direction);         //   (overload for specifying proportional mode)
 
     PID(double*, double*, double*,        // * constructor.  links the PID to the Input, Output, and 
-        double, double, double, int);     //   Setpoint.  Initial tuning parameters are also set here
+        double, double, double,           //   Setpoint.  Initial tuning parameters are also set here
+        pid_direction);     
 	
-    void SetMode(int Mode);               // * sets PID to either Manual (0) or Auto (non-0)
+    void SetMode(pid_mode);               // * sets PID to either Manual (0) or Auto (non-0)
 
     bool Compute();                       // * performs the PID calculation.  it should be
                                           //   called every time loop() cycles. ON/OFF and
@@ -43,9 +42,9 @@ class PID
                     double);         	    //   constructor, this function gives the user the option
                                           //   of changing tunings during runtime for Adaptive control
     void SetTunings(double, double,       // * overload for specifying proportional mode
-                    double, int);         	  
+                    double, pid_p_on);         	  
 
-	void SetControllerDirection(int);	  // * Sets the Direction, or "Action" of the controller. DIRECT
+	void SetControllerDirection(pid_direction);	  // * Sets the Direction, or "Action" of the controller. DIRECT
 										  //   means the output will increase when error is positive. REVERSE
 										  //   means the opposite.  it's very unlikely that this will be needed
 										  //   once it is set in the constructor.
@@ -74,7 +73,7 @@ class PID
     double kd;                  // * (D)erivative Tuning Parameter
 
 	int controllerDirection;
-	int pOn;
+	pid_p_on pOn;
 
     double *myInput;              // * Pointers to the Input, Output, and Setpoint variables
     double *myOutput;             //   This creates a hard link between the variables and the 
