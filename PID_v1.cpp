@@ -7,8 +7,6 @@
 
 #if ARDUINO >= 100
   #include "Arduino.h"
-#elif defined(SPARK)
-  #include "application.h"
 #else
   #include "WProgram.h"
 #endif
@@ -20,7 +18,7 @@
  *    reliable defaults, so we need to have the user set them.
  ***************************************************************************/
 PID::PID(double* Input, double* Output, double* Setpoint,
-        double Kp, double Ki, double Kd, int POn, int ControllerDirection)
+        double Kp, double Ki, double Kd, pid_p_on POn, pid_direction ControllerDirection)
 {
     myOutput = Output;
     myInput = Input;
@@ -44,8 +42,8 @@ PID::PID(double* Input, double* Output, double* Setpoint,
  ***************************************************************************/
 
 PID::PID(double* Input, double* Output, double* Setpoint,
-        double Kp, double Ki, double Kd, int ControllerDirection)
-    :PID::PID(Input, Output, Setpoint, Kp, Ki, Kd, PID_P_ON_E, ControllerDirection)
+        double Kp, double Ki, double Kd, pid_direction ControllerDirection)
+    :PID::PID(Input, Output, Setpoint, Kp, Ki, Kd, ERROR, ControllerDirection)
 {
 
 }
@@ -118,7 +116,7 @@ ELSE Use normal pid control
 */
 void PID::SetHysteresisControl(bool enable, double on, double off) {
     hystControl = enable;
-    if (controllerDirection == PID_REVERSE) {
+    if (controllerDirection == REVERSE) {
         hystOn = -on;
         hystOff = -off;
         return;
@@ -132,12 +130,12 @@ void PID::SetHysteresisControl(bool enable, double on, double off) {
  * it's called automatically from the constructor, but tunings can also
  * be adjusted on the fly during normal operation
  ******************************************************************************/
-void PID::SetTunings(double Kp, double Ki, double Kd, int POn)
+void PID::SetTunings(double Kp, double Ki, double Kd, pid_p_on POn)
 {
    if (Kp<0 || Ki<0 || Kd<0) return;
 
    pOn = POn;
-   pOnE = POn == PID_P_ON_E;
+   pOnE = POn == ERROR;
 
    dispKp = Kp; dispKi = Ki; dispKd = Kd;
 
@@ -146,7 +144,7 @@ void PID::SetTunings(double Kp, double Ki, double Kd, int POn)
    ki = Ki * SampleTimeInSec;
    kd = Kd / SampleTimeInSec;
 
-  if(controllerDirection ==PID_REVERSE)
+  if(controllerDirection == REVERSE)
    {
       kp = (0 - kp);
       ki = (0 - ki);
@@ -205,9 +203,9 @@ void PID::SetOutputLimits(double Min, double Max)
  * when the transition from manual to auto occurs, the controller is
  * automatically initialized
  ******************************************************************************/
-void PID::SetMode(int Mode)
+void PID::SetMode(pid_mode mode)
 {
-    bool newAuto = (Mode == AUTOMATIC);
+    bool newAuto = (mode == AUTOMATIC);
     if(newAuto && !inAuto)
     {  /*we just went from manual to auto*/
         PID::Initialize();
@@ -233,15 +231,15 @@ void PID::Initialize()
  * know which one, because otherwise we may increase the output when we should
  * be decreasing.  This is called from the constructor.
  ******************************************************************************/
-void PID::SetControllerDirection(int Direction)
+void PID::SetControllerDirection(pid_direction direction)
 {
-   if(inAuto && Direction !=controllerDirection)
+   if(inAuto && direction != controllerDirection)
    {
 	  kp = (0 - kp);
       ki = (0 - ki);
       kd = (0 - kd);
    }
-   controllerDirection = Direction;
+   controllerDirection = direction;
 }
 
 /* Status Funcions*************************************************************
