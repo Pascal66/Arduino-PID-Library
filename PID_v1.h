@@ -2,19 +2,20 @@
 #define PID_v1_h
 #define LIBRARY_VERSION	1.2.1
 
+
 class PID
 {
 
 
   public:
 
-  //Constants used in some of the functions below
-  #define AUTOMATIC	1
-  #define MANUAL	0
-  #define DIRECT  0
-  #define REVERSE  1
-  #define P_ON_M 0
-  #define P_ON_E 1
+    #define PID_AUTOMATIC 1
+    #define PID_MANUAL 0
+    #define PID_DIRECT 0
+    #define PID_REVERSE 1
+    #define PID_P_ON_M 0
+    #define PID_P_ON_E 1
+
 
   //commonly used functions **************************************************************************
     PID(double*, double*, double*,        // * constructor.  links the PID to the Input, Output, and 
@@ -49,8 +50,9 @@ class PID
 										  //   means the opposite.  it's very unlikely that this will be needed
 										  //   once it is set in the constructor.
     void SetSampleTime(int);              // * sets the frequency, in Milliseconds, with which 
-                                          //   the PID calculation is performed.  default is 100
-										  
+                                          //   the PID calculation is performed.  default is 10
+    
+    void SetHysteresisControl(bool, double, double);
 										  
 										  
   //Display functions ****************************************************************
@@ -81,10 +83,10 @@ class PID
 			  
 	unsigned long lastTime;
 	double outputSum, lastInput;
+	double hystOn, hystOff;       //Hysteresis control if PV-SP is > hystOn or < hystOff
 
 	unsigned long SampleTime;
 	double outMin, outMax;
-	bool inAuto, pOnE;
+	bool inAuto, pOnE, hystControl;
 };
 #endif
-
